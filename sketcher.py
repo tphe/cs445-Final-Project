@@ -18,27 +18,35 @@ import scipy.sparse.linalg
 import PIL
 from PIL import Image, ImageDraw
 
-al_img = cv2.cvtColor(cv2.imread('images/alfred.png'), cv2.COLOR_BGR2RGB)
-al_img = cv2.cvtColor(al_img, cv2.COLOR_BGR2GRAY)
-plt.imshow(al_img, cmap="gray")
+
 
 def get_gradient(img):
     #gets the gradient image
+
+
+    grad_img = cv2.Laplacian(img,cv2.CV_64F)
+    grad_img = np.abs(grad_img)
+
+    #plt.imshow(grad_img, cmap="gray")
+    
+    return grad_img
+
+def get_edges(img):
+    #gets the edges in binary
+    
     grad_img = cv2.Canny(img,100,200)
 
     grad_img[grad_img == 255] = 1
     grad_img[grad_img == 0] = 255
     grad_img[grad_img == 1] = 0
-
-    plt.imshow(grad_img, cmap="gray")
     
     return grad_img
 
-def gradient_prioritize(grad_img):
+def gradient_prioritize(grad_img, edge_img):
     
     #for now, just labeling each pixel sequentially. Add better criteria later.
     #look into the Canny edge detector algorithm for blob/length detection
-    h, w = grad_img.shape
+    h, w = edge_img.shape
     
     #s = 0
     
@@ -46,7 +54,7 @@ def gradient_prioritize(grad_img):
     
     for i in range(h):
         for j in range(w):
-            if grad_img[i,j] == 0:
+            if edge_img[i,j] == 0:
                 priority.append((i,j))
                 #s += 1
     
@@ -54,29 +62,34 @@ def gradient_prioritize(grad_img):
     
     return priority
 
-def sketch_to_original(grad_img, img):
+def sketch_to_original(draw_img, img):
     #creates a series of images merging between gradient image and original
-    grad_img = grad_img.astype(float)
-    nf = 20
-    img_diff = (img - grad_img)
+    draw_img = draw_img.astype(float)
+    nf = 60
+    img_diff = (img - draw_img)
     img_diff /= nf
-    h, w = grad_img.shape
+    h, w = draw_img.shape
     
-    #output_series = np.zeros((h, w, nf))
     output_series = []
     
     for i in range(nf):
-        grad_img += img_diff
-        #output_series[:,:,i] = np.rint(grad_img).astype(int)
+        draw_img += img_diff
         output_series.append(Image.fromarray(cv2.cvtColor(
-                np.rint(grad_img).astype(np.uint8), cv2.COLOR_GRAY2RGB)))
+                np.rint(draw_img).astype(np.uint8), cv2.COLOR_GRAY2RGB)))
 
     return output_series        
     
 
-def gif_creator(grad_img, priority, speed):
+def gif_creator(img, speed, filepath):
     #creates gif of sketching, with pixes added at rate of speed parameter
-    sketch_img = np.zeros(grad_img.shape, dtype = np.uint8)
+    
+    grad_img = get_gradient(img)
+    edge_img = get_edges(img)
+    priority = gradient_prioritize(grad_img, edge_img)
+    
+    sketch_img = np.zeros(grad_img.shape).astype(np.uint8)
+    sketch_img += 255
+    
     h, w = grad_img.shape
     pix = 0
 
@@ -87,20 +100,28 @@ def gif_creator(grad_img, priority, speed):
     for i in range(frames):
         for j in range(speed):
             y, x = priority[pix]
-            sketch_img[y, x] = grad_img[y, x]
-            output_series.append(Image.fromarray(cv2.cvtColor(
-                sketch_img, cv2.COLOR_GRAY2RGB)))
+            sketch_img[y, x] = img[y, x]
             pix += 1
+        output_series.append(Image.fromarray(cv2.cvtColor(
+           sketch_img, cv2.COLOR_GRAY2RGB)))
+
         if i == frames - 2:
             speed = len(priority) - pix - 1
     
-    output_series[0].save('C:/users/tom/documents/github/cs445-final-project/output/al_sketch.gif', save_all = True,
+    end_merge = sketch_to_original(sketch_img, img)
+    
+    output_series += end_merge
+    
+    output_series[0].save(filepath, save_all = True,
                           append_images = output_series[1:], duration = 40)
     
             
+al_img = cv2.cvtColor(cv2.imread('images/alfred.png'), cv2.COLOR_BGR2RGB)
+al_img = cv2.cvtColor(al_img, cv2.COLOR_BGR2GRAY)
+#plt.imshow(al_img, cmap="gray")
+filepath = 'C:/users/tom/documents/github/cs445-final-project/output/al_sketch.gif'
+gif_creator(al_img, 20, filepath)
     
     
-    
-    
-    
+
     
