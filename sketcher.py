@@ -36,9 +36,9 @@ def get_edges(img):
     
     grad_img = cv2.Canny(img,100,200)
 
-    grad_img[grad_img == 255] = 1
-    grad_img[grad_img == 0] = 255
-    grad_img[grad_img == 1] = 0
+    #grad_img[grad_img == 255] = 1
+    #grad_img[grad_img == 0] = 255
+    #grad_img[grad_img == 1] = 0
     
     return grad_img
 
@@ -51,16 +51,32 @@ def gradient_prioritize(grad_img, edge_img):
     #s = 0
     
     priority = []
-    
+    '''
+    #basic top to bottom order
     for i in range(h):
         for j in range(w):
             if edge_img[i,j] == 0:
                 priority.append((i,j))
                 #s += 1
+    '''
+    #code for using basic results of contours 
+    #Next steps include developing a priority weight based on length of line,
+    #proximity to center, strength of gradient, and other factors.
     
-    #priority = priority[:s]
+    lines = cv2.findContours(edge_img,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    for i in lines[1]:
+        for j in i:
+            coord = tuple(map(tuple, j))
+            priority.append(coord[0])
+                #s += 1
+
+    
+    #lines, line_h = cv.findContours(edge_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     
     return priority
+
+    
 
 def sketch_to_original(draw_img, img):
     #creates a series of images merging between gradient image and original
@@ -99,12 +115,13 @@ def gif_creator(img, speed, filepath):
     
     for i in range(frames):
         for j in range(speed):
-            y, x = priority[pix]
+            x, y = priority[pix]
             sketch_img[y, x] = img[y, x]
             pix += 1
         output_series.append(Image.fromarray(cv2.cvtColor(
            sketch_img, cv2.COLOR_GRAY2RGB)))
 
+        #adjusting last frame so it will finish the remaining pixels
         if i == frames - 2:
             speed = len(priority) - pix - 1
     
@@ -121,7 +138,6 @@ al_img = cv2.cvtColor(al_img, cv2.COLOR_BGR2GRAY)
 #plt.imshow(al_img, cmap="gray")
 filepath = 'C:/users/tom/documents/github/cs445-final-project/output/al_sketch.gif'
 gif_creator(al_img, 20, filepath)
-    
-    
+
 
     
