@@ -16,7 +16,7 @@ import os
 import scipy
 import scipy.sparse.linalg
 import PIL
-from PIL import Image, ImageDraw
+from PIL import Image
 
 
 
@@ -42,14 +42,11 @@ def get_edges(img):
     
     return grad_img
 
+
+
+
+
 def gradient_prioritize(grad_img, edge_img):
-    
-    #for now, just labeling each pixel sequentially. Add better criteria later.
-    #look into the Canny edge detector algorithm for blob/length detection
-    h, w = edge_img.shape
-    
-    #s = 0
-    
     priority = []
     '''
     #basic top to bottom order
@@ -63,15 +60,72 @@ def gradient_prioritize(grad_img, edge_img):
     #Next steps include developing a priority weight based on length of line,
     #proximity to center, strength of gradient, and other factors.
     
-    lines = cv2.findContours(edge_img,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-    for i in lines[1]:
-        for j in i:
-            coord = tuple(map(tuple, j))
-            priority.append(coord[0])
-                #s += 1
-
+    contours = cv2.findContours(edge_img,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    h, w = grad_img.shape    
+#     print(image)
+#     print(hierarchy)
+#     pp = pprint.PrettyPrinter(indent=4)
+#     pp.pprint(lines.shape)
     
+
+#     for i in lines[1]:
+#         for j in i:
+#             coord = tuple(map(tuple, j))
+#             priority.append(coord[0])
+#                 s += 1       
+    centerpt = (math.floor(h/2), math.floor(w/2))
+    nrmFactor = 255/((h+w)/2)
+    longest = len(max(contours[1], key = len))
+    lengthNorm = 255/longest
+    
+    pri_list = []
+    
+    for j, i in enumerate(contours[1]):
+        #find line distance from center, normalize to 256 scale
+        avg_pt = np.average(i, axis = 0)
+        center_dist = math.ceil(abs(centerpt[0] - avg_pt[0][0]) + abs(centerpt[1] - avg_pt[0][1]))
+
+        center_dist = center_dist * nrmFactor
+        center_dist = 255 - center_dist
+        
+        #find average gradient intensity 
+        n = 0
+        ints = 0
+        for r in i:
+            n += 1
+            y = r[0][0]
+            x = r[0][1]
+            ints += grad_img[y, x]
+        avg_ints = ints/n
+        
+        #find line length, normalize to ln scale
+        ln_length = len(i) * lengthNorm
+        
+        pri_score = .3 * avg_ints + .2 * center_dist + .5 * ln_length
+        pri_list.append((pri_score, i))
+    
+    lst2 = sorted(pri_list, key = lambda score: score[0], reverse=True)
+    
+    priority = []
+    filter_contours = []
+    average_length = sum(map(len, contours))/float(len(contours))
+    img = np.zeros([h, w, 3])
+    for i in range(len(contours)):
+        cnt = contours[i]
+        if (len(cnt) > average_length):
+            filter_contours.append(cnt)
+            img = cv2.drawContours(img, [cnt], 0, (0,255,0), 3)
+            draw_img = cv2.cvtColor(np.rint(img).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+            priority.append(draw_img/255)
+
+    for i in range(math.ceil(len(priority)/5) ):
+        plot_img_gray(priority[0+i*5:i*5+5],[])
+        
+    priority_pixel = []
+    for i in range(len(filter_contours)):
+        for j in range(len(filter_contours[i])):
+            priority_pixel.append(filter_contours[i][j][0])
+            
     #lines, line_h = cv.findContours(edge_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     
     return priority
@@ -133,7 +187,7 @@ def gif_creator(img, speed, filepath):
                           append_images = output_series[1:], duration = 40)
     
             
-al_img = cv2.cvtColor(cv2.imread('images/alfred.png'), cv2.COLOR_BGR2RGB)
+al_img = cv2.cvtColor(cv2.imread('images/dog.png'), cv2.COLOR_BGR2RGB)
 al_img = cv2.cvtColor(al_img, cv2.COLOR_BGR2GRAY)
 #plt.imshow(al_img, cmap="gray")
 filepath = 'C:/users/tom/documents/github/cs445-final-project/output/al_sketch.gif'
