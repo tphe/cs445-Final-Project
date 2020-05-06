@@ -145,6 +145,8 @@
     }
    ],
    "source": [
+<<<<<<< HEAD
+=======
     "from PIL import Image, ImageDraw\n",
     "\n",
     "\n",
@@ -198,6 +200,7 @@
    "outputs": [],
    "source": [
     "# -*- coding: utf-8 -*-\n",
+>>>>>>> c190250e2164ac3c60a397c58dc0a6107c951f84
     "\"\"\"\n",
     "Created on Sat Apr 25 12:02:58 2020\n",
     "\n",
@@ -446,7 +449,11 @@
   },
   {
    "cell_type": "code",
+<<<<<<< HEAD
+   "execution_count": 28,
+=======
    "execution_count": 4,
+>>>>>>> c190250e2164ac3c60a397c58dc0a6107c951f84
    "metadata": {},
    "outputs": [
     {
@@ -458,7 +465,11 @@
        "<IPython.core.display.HTML object>"
       ]
      },
+<<<<<<< HEAD
+     "execution_count": 28,
+=======
      "execution_count": 4,
+>>>>>>> c190250e2164ac3c60a397c58dc0a6107c951f84
      "metadata": {},
      "output_type": "execute_result"
     }
